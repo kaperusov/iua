@@ -251,6 +251,7 @@ systemctl enable docker-distribution
 systemctl start docker-distribution
 systemctl status docker-distribution
 ```
+</details>
 
 В обоих случаях нужно указать `DOCKER_USER` и задать ему пароль.
 Это пользователь, под которым можно будет делать push и pull в docker private registry.
