@@ -20,6 +20,7 @@
 *.log.*
 
 ## Private envitoments
+**/env/prod*
 .env
 *secret*
 *.sig

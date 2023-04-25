@@ -4,6 +4,10 @@ image:
   repository: dev #Наименование репозитория
   imagePullPolicy: Always
 
+# Секреты для подключения к private docker registry
+imagePullSecrets:
+  - name: regcred
+  
 restartPolicyJob: OnFailure
 
 strategy:
@@ -26,7 +30,13 @@ pvc:
   file-integration-adapter:
     size: 5Gi
 
-storageClass: microk8s-hostpath #Storage Class кластера. Примеры значений: "hostpath", "microk8s-hostpath"
+storageClass: microk8s-hostpath #Storage Class кластера. Примеры значений: "hostpath", "microk8s-hostpath", "nfs"
+
+# При выборе storageClass: nfs
+# Нужно будет дополнительно прописать следующую опцию:
+nfsServerIP: "192.168.1.77"
+# и использовать специальный pvc template ---> helm install pvc charts/pvc/ -f pvc/nfs.yaml
+
 
 extraEnvVars:
   LOGGING_LEVEL_ROOT:  "INFO"
