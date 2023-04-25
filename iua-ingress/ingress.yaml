@@ -1,0 +1,52 @@
+---
+# Source: smev-adapter/charts/ui-front/templates/ingress.yml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-smev-front
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: smev-server-master.smk-systems.ru
+    http:
+      paths:
+
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: smev-front
+            port: 
+              number: 80
+
+      - path: /configuration
+        pathType: Prefix
+        backend:
+          service:
+            name: smev-front
+            port: 
+              number: 80
+
+      - path: /rs
+        pathType: Prefix
+        backend:
+          service: 
+            name: ui-adapter
+            port: 
+              number: 8083
+      
+      - path: /ws
+        pathType: Prefix
+        backend:
+          service:
+            name: ws-intergation-adapter
+            port: 
+              number: 7575
+
+      - path: /push
+        pathType: Prefix
+        backend:
+          service:
+            name: push-notifications-adapter
+            port: 
+              number: 7992
