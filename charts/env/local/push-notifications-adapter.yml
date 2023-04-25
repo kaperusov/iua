@@ -8,3 +8,11 @@ resources:
     memory: '400Mi'
     cpu: '1'
 
+services:
+  - name: push-notifications-adapter
+    type: NodePort
+    ports:
+    - name: push-notifications-adapter
+      port: 7992
+      targetPort: 7992
+      nodePort: 31103
