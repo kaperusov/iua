@@ -1,0 +1,63 @@
+pv:
+  - name: smev-nfs-key
+    spec:
+      storageClassName: "{{ .Values.storageClass }}"
+      capacity:
+        storage: 1Gi
+      accessModes:
+        - ReadWriteMany
+      nfs:
+        path: "{{ .Values.keysPath }}"
+        server: "{{ .Values.nfsServerIP }}"
+  - name: smev-nfs-basket
+    spec:
+      storageClassName: "{{ .Values.storageClass }}"
+      capacity:
+        storage: 5Gi
+      accessModes:
+        - ReadWriteMany
+      nfs:
+        path: "{{ .Values.basketPath }}"
+        server: "{{ .Values.nfsServerIP }}"
+  - name: file-integration-adapter
+    spec:
+      storageClassName: "{{ .Values.storageClass }}"
+      capacity:
+        storage: 5Gi
+      accessModes:
+        - ReadWriteMany
+      nfs:
+        server: "{{ .Values.nfsServerIP }}"
+        path: "{{ .Values.fileIntegrationPath }}"
+
+pvc:
+  smev-nfs-key:
+    enabled: true
+    spec:
+      storageClassName: "{{ .Values.storageClass }}"
+      accessModes:
+        - ReadWriteMany
+      resources:
+        requests:
+          storage: 1Gi
+      volumeName: "smev-nfs-key"
+  smev-nfs-basket:
+    enabled: true
+    spec:
+      storageClassName: "{{ .Values.storageClass }}"
+      accessModes:
+        - ReadWriteMany
+      resources:
+        requests:
+          storage: 2Gi
+      volumeName: "smev-nfs-basket"
+  file-integration-adapter:
+    enabled: true
+    spec:
+      storageClassName: "{{ .Values.storageClass }}"
+      accessModes:
+        - ReadWriteMany
+      resources:
+        requests:
+          storage: 5Gi
+      volumeName: "file-integration-adapter"
