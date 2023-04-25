@@ -1,0 +1,26 @@
+
+## Binary files
+*.tar
+*.gz
+*.tgz
+*.zip
+*.rar
+
+## Temporary files
+*.swp
+*.idea
+
+## Runtime files
+*/backups
+*/iua-images
+
+## Logs
+**/logs/
+*.log
+*.log.*
+
+## Private envitoments
+.env
+*secret*
+*.sig
+*.key
