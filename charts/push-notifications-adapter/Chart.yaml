@@ -2,5 +2,5 @@ apiVersion: v2
 name: push-notifications-adapter
 description: push-notifications-adapter
 type: application
-version: 2.4.0
-appVersion: 2.4.0
+version: 2.6.0
+appVersion: 2.6.0

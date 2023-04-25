@@ -2,5 +2,5 @@ apiVersion: v2
 name: plugin-integration-adapter
 description: plugin-integration-adapter
 type: application
-version: 2.4.0
-appVersion: 2.4.0
+version: 2.6.0
+appVersion: 2.6.0
