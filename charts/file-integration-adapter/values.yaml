@@ -1,0 +1,9 @@
+name: "file-integration-adapter"
+
+volumeMounts:
+  - mountPath: /mnt
+    name: smev-nfs-key
+  - mountPath: /basket
+    name: smev-nfs-basket
+  - mountPath: /file-integration-adapter/integration
+    name: file-integration-adapter

@@ -1,0 +1,37 @@
+{{- if .Values.pvc }}
+  {{- range $pvcName, $pvcValue := $.Values.pvc }}
+    {{- if not (eq ($pvcValue.enabled | toString) "false") }}
+      {{- $pvcName_tpl := (tpl $pvcName $) }}
+      {{- $pvcValue_policy := $pvcValue.policy | default "keep" }}
+{{-  $pvc := (lookup "v1" "PersistentVolumeClaim" $.Release.Namespace $pvcName_tpl) }}
+{{- if not $pvc.metadata }}
+  {{- printf "# PVC %s not exist. Will create it" $pvcName_tpl }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $pvcName_tpl }}
+  labels:
+  {{- include "template.labels" $ | nindent 4 }}
+  {{- if $pvcValue.labels }}
+  {{- tpl (toYaml $pvcValue.labels) $ | nindent 4 }}
+  {{- end }}
+  annotations:
+    {{- if eq $pvcValue_policy "keep" }}
+    helm.sh/resource-policy: {{ $pvcValue_policy }}
+    {{- end}}
+  {{- if $pvcValue.annotations }}
+  {{- tpl (toYaml $pvcValue.annotations) $ | nindent 4 }}
+  {{- end }}
+  {{- if $pvcValue.spec }}
+spec:
+  {{- tpl (toYaml $pvcValue.spec) $ | nindent 2 }}
+    {{- end }}
+---
+{{- else }}
+  {{- printf "# %s;" $pvc.metadata.name }}
+  {{- printf "# PVC %s already exists. Will pass this manifest" $pvcName_tpl }}
+{{- end }}
+
+{{- end }}
+{{- end }}
+{{- end }}

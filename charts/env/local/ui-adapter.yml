@@ -1,0 +1,19 @@
+replicaCount: 1
+
+resources:
+  requests:
+    memory: '900Mi'
+    cpu: '500m'
+  limits:
+    memory: '1500Mi'
+    cpu: '1'
+
+services:
+  - name: ui-adapter
+    type: NodePort
+    ports:
+    - name: ui-adapter
+      port: 8083
+      targetPort: 8083
+      nodePort: 31101
+

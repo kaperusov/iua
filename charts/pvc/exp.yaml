@@ -1,0 +1,708 @@
+## name: nginx-test - имя приложения
+name: nginx-test
+
+## Описание образа
+image:
+  registry: registry.gosuslugi.local
+  repository: test-uat
+
+## Переопределение образа полностью, одним значением
+#imageOverride: nginx:1.19
+
+## Описание политики выкачивания образа в поде
+imagePullPolicy: Always
+
+## Описание учетной записи для выкачивания образов
+imagePullSecrets:
+  - name: registry.gosuslugi.local
+
+## Описание на каких нодах в кластере будут запускаться поды
+nodeSelector:
+  node-role.kubernetes.io/worker: "true"
+
+
+## replicaCount: 2 - Количество реплик которое запустит контроллер приложения (по умолчанию 1)
+replicaCount: 2
+
+## Описание лэйбов
+labels:
+  environment: test
+
+
+metadataLabels:
+  metadata: test
+   
+
+
+## Описание анотаций
+annotations:
+  custom: annotation
+
+
+## Переопределение команды старта контейнера
+#command:
+#  - sh
+
+## Переопределение аргументов команды старта контейнера
+#args:
+#  - -c
+#  - while true; do echo hello; sleep 10;done
+
+
+lifecycle:
+  enabled: true
+  postStart:
+    enabled: true
+    exec:
+      command: ["/bin/sh", "-c", "echo Hello from the postStart handler > /tmp/message.txt"]
+  preStop:
+    enabled: false
+    exec:
+      command:
+        - /egov/tomcat/bin/catalina.sh stop 10 -force
+
+
+terminationGracePeriodSeconds: 11
+
+
+
+## Секция описания рендеринга ConfigMap
+## Для создания конфигмапов необходимо создать директорию configmaps в директории с чартом (при ее отсутствии)
+## В директории configmaps создать необходимую структуру каталогов и разместить в них файлы, необходимые для построения конфигмапов
+## Конфигмап строится рекурсивно, относительно директории указанной в path
+## Для создания "обычных" конфигмапов допускаются любые небинарные файлы
+## Если необходимо в конфигмап добавить бинарный фаил, то для этого необходимо использовать type: binaryData (может быть использовано для хранения сертификатов) (Внимание: лимит конфигмапа - 1Мб)
+## Если необходимо создать конфигмап с переменными окружения, то можно описать их в значении data
+## Если конфигмап не надо темплетйить - например какие-либо ключи, то необходимо поставтиь render: false (только для path)
+
+configmaps:
+## Пример описания "обычного" конфигмапа
+  - name: '{{ $.Values.name }}.config'
+    path: config
+    #render: false 
+## Пример описания конфигмапа с описанием файлов в нем
+  - name: '{{ $.Values.name }}.files'
+    files:
+      '{{ $.Values.name }}.conf': |
+        server {
+          server_name  {{ $.Values.name }};
+        }
+      '{{ $.Values.name }}.sql': |
+        CREATE USER audit with password '{{ $.Values.name }}';
+        CREATE DATABASE "{{ $.Values.name }}" WITH OWNER "audit";
+
+## Пример описания "бинарного" конфигмапа
+  - name: '{{ $.Values.name }}.certs'
+    path: certs
+    type: binaryData
+## Пример описания конфигмапа, содержащего переменные
+  - name: '{{ $.Values.name }}.env'
+    data:
+       VAR1: '{{ $.Values.name }}'
+       VAR2: 'value 2'   
+
+extraConfigmaps:
+  '{{ $.Values.name }}.config-extra':
+    #render: false
+    #enabled: false
+    path: config
+  '{{ $.Values.name }}.files-extra':
+    #enabled: false
+    files:
+      '{{ $.Values.name }}.conf': |
+        server {
+          server_name  {{ $.Values.name }};
+        }
+      '{{ $.Values.name }}.sql': |
+        CREATE USER audit with password '{{ $.Values.name }}';
+        CREATE DATABASE "{{ $.Values.name }}" WITH OWNER "audit";
+  '{{ $.Values.name }}.env-extra':
+    #enabled: false
+    data:
+      VAR1: "{{ $.Values.name }}"
+      VAR2: 'value 2'  
+
+## Секция описания рендеринга Secret
+## Для создания сикретов необходимо создать директорию secrets в директории с чартом (при ее отсутствии)
+## В директории secrets создать необходимую структуру каталогов и разместить в них файлы необходимые для построения сикрета
+## Сикрет строится рекурсивно, относительно директории указанной в path
+## Для создания сикретов допускаются любые файлы. (Внимание: лимит сикрета - 1Мб)
+## Если необходимо создать сикрет с переменными окружения, то можно описать их в значении stringData
+## Если сикрет не надо темплетйить - например какие-либо ключи, то необходимо поставтиь render: false (только для path)
+
+secrets:
+## Пример описания сикрета
+  - name: '{{ $.Values.name }}.private'
+    #render: false
+    path: private
+## Пример описания сикрета с переменными
+  - name: '{{ $.Values.name }}.secenv'
+    stringData:
+       SEC_VAR1: 'secret {{ $.Values.name }}'
+       SEC_VAR2: 'secret value 2'   
+
+extraSecrets:
+  '{{ $.Values.name }}.secret-extra':
+    #enabled: false
+    #render: false
+    path: private
+  '{{ $.Values.name }}.env-extra':
+    #enabled: false
+    stringData:
+       SEC_VAR1: 'secret {{ $.Values.name }}'
+       SEC_VAR2: 'secret value 2'  
+
+
+## Описание источников переменных окружения (Приоритет в контроллере, всегда у секции env)
+envFrom:
+  - configMapRef:
+      name: '{{ $.Values.name }}.env'
+  - secretRef:
+      name: '{{ $.Values.name }}.secenv'
+
+## Описание переменных окружения
+## Переопределить (с помощью дополнительного файла со значениями) данный список, можно только полностью весь
+env:
+  - name: TZ
+    value: Europe/Moscow
+
+## Дополнительные переменные окружения
+## Возможно переопределить (с помощью дополнительного файла со значениями) любую переменную или добавить новую
+extraEnvVars:
+  EXTRA_VAR1: '{{ $.Values.name }}'
+
+## Описание списка портов, используемых контейнером
+## Имя порта можно использовать в livenessProbe, readinessProbe, service.ports[].targetPort
+ports:
+  - name: http
+    containerPort: 80
+
+
+#startupProbe:
+#  initialDelaySeconds: 1
+#  periodSeconds: 5
+#  timeoutSeconds: 1
+#  successThreshold: 1
+#  failureThreshold: 1
+##  exec:
+##    command:
+##    - cat
+##    - /etc/nginx/nginx.conf
+##  tcpSocket:
+##    host:
+##    port: 80
+#  httpGet:
+#    host:
+#    scheme: HTTP
+#    path: /
+#    httpHeaders:
+#    - name: Host
+#      value: myapplication1.com
+#    port: 80
+
+## Описание проверки "готовности" контейнера
+## Возможно переопределить (с помощью дополнительного файла со значениями) любую переменную или добавить новую 
+readinessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 20
+  periodSeconds: 10
+  successThreshold: 1
+  failureThreshold: 8
+  timeoutSeconds: 10
+
+## Описание проверки "живучести" контейнера
+## Возможно переопределить (с помощью дополнительного файла со значениями) любую переменную или добавить новую
+livenessProbe:
+  enabled: false
+  tcpSocket:
+    port: http
+  initialDelaySeconds: 20
+  periodSeconds: 10
+  successThreshold: 1
+  failureThreshold: 8
+  timeoutSeconds: 10
+
+## initialDelaySeconds: Количество секунд от старта контейнера, до начала liveness или readiness проб. По умолчанию 0 секунд. Минимальное значение 0
+## periodSeconds: Длительность времени (в секундах) между двумя последовательными проведениями проб. По умолчанию 10 секунд. Минимальное значение 1
+## timeoutSeconds: Количество секунд ожидания пробы. По умолчанию 1 секунда. Минимальное значение 1
+## successThreshold: Минимальное количество последовательных проверок, чтобы проба считалась успешной после неудачной. По умолчанию 1. Минимальное значение 1
+## failureThreshold: Минимальное количество последовательных проверок, чтобы проба считалась неуспешной.
+##   В случае с liveness пробой, произойдет рестарт контейнера, с readiness пробой под будет выведен из балансировки. По умолчанию 3. Минимальное значение 1
+
+## HTTP пробы имеют дополнительные поля, которые могут быть установлены для httpGet:
+## host: Имя хоста для соединения, по умолчанию pod IP
+## scheme: Схема для соединения к хосту (HTTP or HTTPS). По умолчанию HTTP
+## path: Путь для доступа к HTTP серверу
+## httpHeaders: Кастомные заголовки запроса. HTTP позволяет использовать повторяющиеся заголовки
+## port: Имя или номер порта для доступа к контейнеру. Номер должен быть в диапазоне от 1 до 65535
+
+
+## Описание ресурсов для контейнера
+resources:
+## Указание минимально необходимого количества ресурсов контейнеру для запуска и работы в обычном режиме
+## На основании данных значений выберается узел для запуска контейнера
+  requests:
+    memory: '64Mi'
+    cpu: '20m'
+## Устанавливаются ограничения для контейнера. При превышении лимита под будет перезапущен
+  limits:
+    memory: '100Mi'
+    cpu: '40m'
+
+
+## Описание точек монтирования (mountPath)
+## Определяет путь внутри контейнера, куда будет монтироваться конфигмап, сикрет или pvc (постоянный том)
+volumeMounts:
+  - name: config
+    mountPath: /etc/nginx/nginx.conf
+    subPath: nginx.conf
+  - name: config
+    mountPath: /etc/nginx/conf.d/default.conf
+    subPath: default.conf
+  - name: certs
+    mountPath: /usr/share/nginx/html/configmap-certs
+  - name: private
+    mountPath: /usr/share/nginx/html/secret-private
+  - name: shared-data
+    mountPath: /usr/share/nginx/html/shared-data
+  - name: dshm
+    mountPath: /dev/shm
+
+## В описании volumes перечисляются все тома, которые используются в поде
+## Требуется указать имя, тип и параметры подключения.
+## Какие именно параметры перечисляются в манифесте, зависит от типа ресурса
+volumes:
+## Configmaps
+  - name: config
+    configMap:
+      name: '{{ $.Values.name }}.config'
+  - name: certs
+    configMap:
+      name: '{{ $.Values.name }}.certs'
+## Secrets
+  - name: private
+    secret:
+      secretName: '{{ $.Values.name }}.private'
+  - name: shared-data
+    emptyDir: {}
+## Пример выделения тома в оперативной памяти
+  - name: dshm
+    emptyDir:
+      medium: Memory
+      sizeLimit: 1Gi
+## Пример PVC
+  - name: data
+    persistentVolumeClaim:
+      claimName: '{{ $.Values.name }}-data'
+
+
+## Описание services
+## Используется два типа сервисов - ClusterIP и NodePort
+## ClusterIP - сервис создаёт связность между подами внутри кластера
+## NodePort - сервис создаёт связность между подами внутри кластера и может быть использован для входящего извне трафика
+services:
+  - name: '{{ $.Values.name }}'
+    annotations:
+      mon/group: other
+      mon/path: /health
+    labels:
+      mon/enable: "true"
+      mon/project: micro
+    type: ClusterIP
+#    sessionAffinity: ClientIP
+#    sessionAffinityConfig:
+#      clientIP:
+#        timeoutSeconds: 3600
+    ports:
+      - name: http
+        port: 80
+        targetPort: http
+  - name: '{{ $.Values.name }}-debug'
+    type: NodePort
+    ports:
+      - name: http
+        port: 80
+        targetPort: http
+        nodePort: 31081
+
+
+## Описание Ingress
+ingress:
+  - name: '{{ $.Values.name }}'
+    #ingressClassName: haproxy-ingress # Можно указать какой ingress класс использовать
+    annotations:
+      mon/group: other
+      mon/path: /service/document/registry/health
+      nginx.ingress.kubernetes.io/proxy-body-size: 20m
+      nginx.ingress.kubernetes.io/rewrite-target: /$2
+    labels:
+      mon/enable: "true"
+      mon/project: micro
+    tls:
+      - hosts:
+          - dev-l01.test.gosuslugi.ru
+        secretName: test.gosuslugi.ru
+    rules:
+      - host: '{{ $.Values.ingress_base_host }}'
+        http:
+          paths:
+            - backend:
+                serviceName: '{{ $.Values.name }}'
+                servicePort: 80
+              path: /service/document/registry(/|$)(.*)
+
+## Описание доменных имен и их ip адресов
+hostAliases:
+  - ip: '192.168.0.1'
+    hostnames:
+    - 'test-service'
+
+## Замена имени хоста
+hostname: application
+
+## Описание запуска под app пользовтателем
+securityContext:
+  allowPrivilegeEscalation: false
+  runAsNonRoot: true
+  runAsUser: 1000
+
+## Описание hpa
+## Требуется для создания правил автоматического горизонтального масштабирования подов
+## enabled: true                         - Включить Horizontal Pod Autoscaler
+## name: nginx-test                      - Имя НРА (по умолчанию '{{ .Values.name }}')
+## scaleTargetRef: nginx-test            - Указание контроллера для масштабирования (по умолчанию '{{ .Values.name }}')
+## minReplicas: '1'                      - Минимальное количество подов в контроллере, которое будет запущено этим HPA (по умолчанию '1')
+## maxReplicas: '1'                      - Максимальное количество подов в контроллере, которое будет запущено этим HPA (по умолчанию '1')
+## targetCPUUtilizationPercentage: '70'  - % от requests использования CPU, при достижении которого НРА начнёт добавлять или удалять поды (по умолчанию не задан) (не обязателен)
+
+hpa:
+  enabled: true
+  name: '{{ .Values.name }}'
+  scaleTargetRef: '{{ .Values.name }}'
+  minReplicas: '2'
+  maxReplicas: '5'
+
+  targetCPUUtilizationPercentage: '70'
+  targetMemoryUtilizationPercentage: '80'
+
+## Описание дополнительных контейнеров в поде
+## Не является списком, для возможности простого переопределения параметров через дополнительные файлы со значениями
+extraContainers:
+## Имя дополнительного контейнера
+  container-extra-centos:
+## Возможность переназначить образ, по умолчанию секция берется как у основного контейнера
+    image:
+      registry: registry.gosuslugi.local
+      repository: os
+      name: centos
+      tag: 8
+## Можно переопределить образ полностью одним значением
+#    imageOverride: nginx:1.19
+## Описание источников переменных окружения как и в основном контейнере (Приоритет в контроллере, всегда у секции env)
+    envFrom:
+      - configMapRef:
+          name: '{{ $.Values.name }}.env'
+      - secretRef:
+          name: '{{ $.Values.name }}.secenv'
+    env:
+      - name: TZ
+        value: Europe/Moscow
+    extraEnvVars:
+      EXTRA_VAR1: '{{ $.Values.name }}'
+## Описание портов
+    ports:
+      - name: http8080
+        containerPort: 8080
+## Команда и её аргументы
+    command:
+      - bash
+    args:
+      - -c
+      - while true; do
+          date > /shared-data/container-extra-centos.txt;
+          env >> /shared-data/container-extra-centos.txt;
+          sleep 10;
+        done
+## Ресурсы контейнера
+    resources:
+      requests:
+        memory: '64Mi'
+        cpu: '20m'
+      limits:
+        memory: '100Mi'
+        cpu: '40m'
+## readinessProbe и/или livenessProbe
+    livenessProbe:
+      exec:
+        command:
+        - cat
+        - /shared-data/container-extra-centos.txt
+      initialDelaySeconds: 5
+      periodSeconds: 5
+## volumeMounts
+    volumeMounts:
+      - name: config
+        mountPath: /etc/nginx/nginx.conf
+        subPath: nginx.conf
+## Монтирование общей между контейнерами директории в поде
+      - name: shared-data
+        mountPath: /shared-data
+
+
+## Описание инит-контейнеров:
+initContainers:
+  '{{ $.Values.name }}-init1':
+    enabled: true
+    image:
+      registry: registry.gosuslugi.local
+      repository: os
+      name: centos
+      tag: 8
+    command:
+      - sh
+    args:
+      - -c
+      - echo ok;sleep 10
+    envFrom:
+      - configMapRef:
+          name: '{{ $.Values.name }}.env'
+      - secretRef:
+          name: '{{ $.Values.name }}.secenv'
+    extraEnvVars:
+      EXTRA_VAR1: '{{ $.Values.name }}'
+    securityContext:
+      runAsUser: 0
+    volumeMounts:
+      - name: shared-data
+        mountPath: /shared-data
+
+
+## Описание cronjobs
+cronjobs:
+  cronjob-1:
+    schedule: 0 10 * * * 
+    restartPolicy: Never
+    annotations:
+      helm.sh/hook: pre-install
+    volumes:
+      - name: config
+        configMap:
+          name: '{{ $.Values.name }}.config'
+    image:
+      registry: registry.gosuslugi.local
+      repository: os
+      name: centos
+      tag: 8
+    imageOverride: nginx:1.18
+    imagePullPolicy: Always
+
+
+## Описание jobs
+jobs:
+  'job-{{ $.Values.name }}-1':
+    enabled: false ## Включить или выключить джобу (default true) 
+                   ## Поддерживается bool/string и рендеринг '{{ $.Values.variable }}'
+    restartPolicy: Never
+    backoffLimit: 2 ## Количество дополнительных попыток запуска джобы (default "0")
+    ttlSecondsAfterFinished: 300 ## Джоба автоматически удалиться через 300 секунд (Complete/Failed) 
+    nodeSelector:                          ## Переопределение '{{ $.Values.nodeSelector }}'
+      node-role.kubernetes.io/nvme: "true" 
+## Добавление кастомных лейбов для джобы
+    labels:
+## Добавление кастомных анотаций для джобы
+    annotations:
+      helm.sh/hook: pre-install
+    volumes:
+      - name: config
+        configMap:
+          name: '{{ $.Values.name }}.config'
+
+
+## Описание параметров контейнера в джобе
+## Имя контейнера = имя джобы
+## Описание образа контейнера джобы
+    image:
+      registry: registry.gosuslugi.local
+      repository: os
+      name: centos
+      tag: 8
+    imageOverride: nginx:1.18 ## Возможен рендеринг '{{ $.Values.image.registry }}/nginx/{{ .Release.Name }}:{{ .Chart.AppVersion }}'
+    imagePullPolicy: Always
+    command:
+      - sh
+    args:
+      - -c
+      - echo ok;sleep 10
+    env:
+      - name: TEST1
+        value: test1
+    envFrom:
+      - configMapRef:
+          name: '{{ $.Values.name }}.env'
+      - secretRef:
+          name: '{{ $.Values.name }}.secenv'
+    extraEnvVars:
+      EXTRA_VAR1: '{{ $.Values.name }}'
+    securityContext:
+      runAsUser: 0
+    volumeMounts:
+      - name: shared-data
+        mountPath: /shared-data
+
+
+## Описание дополнительных контейнеров в джобе
+    extraContainers:
+## Имя контейнера
+      test2:
+        imageOverride: nginx:1.19
+        imagePullPolicy: Always
+        #image:
+        #  name: centos
+        command:
+          - sh
+        args:
+          - -c
+          - echo ok;sleep 10
+        env:
+          - name: TEST1
+            value: test1
+        envFrom:
+          - configMapRef:
+              name: '{{ $.Values.name }}.env'
+          - secretRef:
+              name: '{{ $.Values.name }}.secenv'
+        extraEnvVars:
+          EXTRA_VAR1: '{{ $.Values.name }}'
+        securityContext:
+          runAsUser: 0
+        volumeMounts:
+          - name: shared-data1
+            mountPath: /shared-data1
+
+
+## Описание pvc 
+pvc:
+## Имя
+  test-pvc1:
+## Включить/Выключить pvc 
+    enabled: true
+## Добавит кастомные анотации
+    annotations:
+## Выбираем storage-class для pvc, если не указывать, будет использован storage-class по умолчанию выбранный в kubernetes
+      volume.beta.kubernetes.io/storage-class: nfs-classic
+    spec:
+      accessModes:
+        - ReadWriteMany
+      resources:
+        requests:
+          storage: 1Gi
+  test-pvc2:
+    enabled: false
+    spec:
+      accessModes:
+        - ReadWriteMany
+      resources:
+        requests:
+          storage: 1Gi
+
+
+serviceAccountName: "name-of-service-account" 
+
+serviceaccounts:
+  - name: '{{ $.Values.name }}'
+
+roles:
+  - name: '{{ $.Values.name }}-endpoint-reader'
+    rules:
+      - apiGroups: [""]
+        resources: ["endpoints"]
+        verbs: ["get"]
+      - apiGroups: [""]
+        resources: ["events"]
+        verbs: ["create"]
+rolebindings:
+  - name: '{{ $.Values.name }}-endpoint-reader'
+    subjects:
+      - kind: ServiceAccount
+        name: '{{ $.Values.name }}'
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: '{{ $.Values.name }}-endpoint-reader'
+
+
+virtualservers:
+  - name: '{{ $.Values.name }}-vs'
+    host: '{{ $.Values.some_url }}'
+    upstreams:
+      - name: app-portal
+        service: app-portal
+        port: 8280
+        use-cluster-ip: true
+      - name: web-portal
+        service: web-portal
+        port: 80
+        use-cluster-ip: true
+      - name: new-web-portal
+        service: new-web-portal
+        port: 80
+        use-cluster-ip: true
+    server_snippets:
+      proxy_headers_hash_max_size 4096;
+      proxy_headers_hash_bucket_size 512;
+      location /help/some {
+        return 302 https://{{ $.Values.some_url }}/;
+      }
+    routes:
+      - path: =/
+        location-snippets: |
+          proxy_set_header x-vt PORTAL;
+        action:
+          pass: app-portal
+      - path: /
+        location-snippets: |
+          proxy_set_header x-vt PORTAL;
+        action:
+          pass: web-portal
+      - path: ~ ^/24225/(10|13|14)/
+        location-snippets: |
+          proxy_set_header x-vt PORTAL;
+        action:
+          pass: new-web-portal
+      - path: ~ ^/(600101|600102|600103|600104|600105|600106|400185|600109|600110|600113|285582|285582|296939|296939|400502|600120|600121|600122|600123|600124|600125|600126|600127|600300|600301|600302|600303|600304|600142|600143|600171|600153|600129|600144|600160|600158|600147|600131|600179|600135|600134|600139|600141|600137|600157|600136|600140|600173|600133|600130|600161|600154|600151|600170|600145|600146|600178|600163|600128|600132|600148|600149|600150|600152|600155|600156|600159|600162|600164|600165|600166|600167|600168|600169|600172|600174|600175|600176|600177|600115|600182|600184|600185|600186|600187|600191|600192|600193|600307|600188|600189|600200|600202|600203|600204|600205|600308|600201|600309|600226|600100|600310|600311|600206|600200|600197|600213|600196|600312|600209|600215|600216|600219|600194|600400|600401|600402|600315|600330|600317|600318|600319|600410|600411|600412|600316|600245|600195|600198|600199|600207|600208|600210|600211|600212|600214|600215|600216|600217|600218|600219|600220|600221|600222|600223|600224|600225|600227|600228|600230|600231|600232|600235|600234|600236|600237|600238|600239|600240|600241|600243|600244|600246|600332|600339|600305|600342|600343|600345|600346|600252|600253|600254|600255|600348|600347|600340|600350|600341|600248|600352|600356|600351|600354|600353|600357|600349|600180|600355|600331|600431|600432|600256|600257|600358|600361|600363|600360|600438|600359|600265|600362|600366|600416|600415|600439|600440|600441|600442|600367|600364|600422|600270|600271|600272|600273|600274|600275|600277|600368)/1/info/?$
+        location-snippets: |
+          return 302 https://{{ $.Values.some_url }}/$1/1/form;
+        #action need to be here but it doesn't matter
+        action:
+          pass: new-web-portal
+      - path: ~ ^/110944/10/info/?$
+        action:
+          redirect:
+            url: '${scheme}://${host}/110944/10/form'
+            code: 302
+      - path: ~ ^/egrn
+        matches:
+          - conditions:
+            - cookie: egrn
+              value: "2021"
+            action:
+                pass: new-web-portal
+        action:
+          redirect:
+            url: '${scheme}://${host}/'
+            code: 302
+
+## Пример описания serviceMonitor
+serviceMonitors:
+  test:
+    #labels:
+    #  test: test
+    #annotations:
+    #  annotations: test
+    endpoints:
+    - port: http
+      scheme: http
+      interval: 15s
+      scrapeTimeout: 2s

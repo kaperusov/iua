@@ -1,0 +1,5 @@
+name: "push-notifications-adapter"
+
+volumeMounts:
+  - mountPath: /mnt
+    name: smev-nfs-key

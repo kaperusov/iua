@@ -1,0 +1,7 @@
+name: "statistics-adapter"
+
+volumeMounts:
+  - mountPath: /mnt
+    name: smev-nfs-key
+  - mountPath: /basket
+    name: smev-nfs-basket

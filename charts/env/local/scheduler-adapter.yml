@@ -1,0 +1,18 @@
+replicaCount: 1
+
+resources:
+  requests:
+    memory: '100Mi'
+    cpu: '100m'
+  limits:
+    memory: '400Mi'
+    cpu: '1'
+
+extraEnvVars:
+   main_maximum_pool_size: "2"
+   main_minimum_idle: "1"
+   conf_maximum_pool_size: "2"
+   conf_minimum_idle: "1"
+   core_maximum_pool_size: "1"
+   core_minimum_idle: "0"
+

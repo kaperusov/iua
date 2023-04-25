@@ -1,0 +1,26 @@
+name: "storage-tool-job"
+
+jobs:
+  'job-{{ $.Values.name }}-1':
+    restartPolicy: Never
+    extraEnvVars:
+      LOGGING_LEVEL_ROOT:  "INFO"
+      TZ: "Europe/Moscow"
+      kafka_servers: "{{ $.Values.extraEnvVars.kafka_servers }}"
+      storage_adapter_url: "{{ $.Values.extraEnvVars.storage_adapter_url }}"
+      storage_configuration_url: "{{ $.Values.extraEnvVars.storage_configuration_url }}"
+      incoming_attachments_path: "/basket/in"
+      storage_path: "/basket/tmp"
+      storage-tool: "postgresql"
+      storage_type: "postgresql"
+      CRYPTO: ""
+      COMPANY: ""
+      version: "4.0.3"
+      smev_http_adapter_url: "http://smev-http-adapter:7576"
+      inner_integration_adapter_url: "http://inner-integration-adapter:7577"
+
+volumeMounts:
+  - mountPath: /mnt
+    name: smev-nfs-key
+  - mountPath: /basket
+    name: smev-nfs-basket

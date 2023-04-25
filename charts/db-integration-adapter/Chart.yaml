@@ -1,0 +1,6 @@
+apiVersion: v2
+name: db-integration-adapter
+description: db-integration-adapter
+type: application
+version: 2.4.0
+appVersion: 2.4.0

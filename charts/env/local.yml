@@ -1,0 +1,57 @@
+# Global helm values
+image:
+  registry:  localhost:32000 #Адрес реестра образов ИУА Enterprise
+  repository: dev #Наименование репозитория
+  imagePullPolicy: Always
+
+restartPolicyJob: OnFailure
+
+strategy:
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
+  type: RollingUpdate
+
+rollout: true
+
+keysPath: "/root/iua-mnt/keys" #Директория с ключами ЭП-ОВ
+basketPath: "/root/iua-mnt/basket" #Директория для хранения служебных файлов и вложений отправляемых/принимаемых сообщений
+fileIntegrationPath: "/root/iua-mnt/file-integration" #Директория для работы файлового интерфейса интеграции ИУА
+
+pvc:
+  smev-nfs-key:
+    size: 100Mi
+  smev-nfs-basket:
+    size: 5Gi
+  file-integration-adapter:
+    size: 5Gi
+
+storageClass: microk8s-hostpath #Storage Class кластера. Примеры значений: "hostpath", "microk8s-hostpath"
+
+extraEnvVars:
+  LOGGING_LEVEL_ROOT:  "INFO"
+  TZ: "Europe/Moscow"
+  kafka_servers: "192.168.1.77:9092"
+  storage_adapter_url: "jdbc:postgresql://192.168.1.77:5432/smev_adapter_develop?user=smev_adapter&password=smev_adapter" #Параметры подключения к БД
+  storage_configuration_url: "jdbc:postgresql://192.168.1.77:5432/smev_adapter_develop?user=smev_adapter&password=smev_adapter" #Параметры подключения к БД
+  incoming_attachments_path: "/basket/incoming_attachments" #Директория для передачи отправляемых из ИС УВ вложений
+  storage_path: "/basket"
+  storage-tool: "postgresql"
+  storage_type: "postgresql"
+  CRYPTO: "" #Серийный номер лицензии КриптоПро JCP 2
+  COMPANY: "" #Наименовании компании лицензиата КриптоПро JCP 2
+  version: "4.0.3"
+  smev_http_adapter_url: "http://smev-http-adapter:7576"
+  inner_integration_adapter_url: "http://inner-integration-adapter:7577"
+
+# Chart values
+volumes:
+  - name: smev-nfs-key
+    persistentVolumeClaim:
+      claimName: smev-nfs-key
+  - name: smev-nfs-basket
+    persistentVolumeClaim:
+      claimName: smev-nfs-basket
+  - name: file-integration-adapter
+    persistentVolumeClaim:
+      claimName: file-integration-adapter

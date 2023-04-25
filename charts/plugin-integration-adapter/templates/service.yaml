@@ -1,0 +1,115 @@
+{{- if .Values.services }}
+{{- range .Values.services }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ tpl .name $ }}
+  labels:
+  {{- include "template.labels" $ | nindent 4 }}
+  {{- if .labels }}
+    {{- toYaml .labels | nindent 4 }}
+  {{- end }}
+  {{- if .annotations }}
+  annotations:
+    {{- toYaml .annotations | nindent 4 }}
+  {{- end }}
+    {{- include "template.annotations" $ | nindent 4 }}
+spec:
+  {{- if .type }}
+  type: {{ .type }}
+  {{- end }}
+  {{- if .sessionAffinity }}
+  sessionAffinity: {{ .sessionAffinity }}
+  {{- end }}
+  {{- if .sessionAffinityConfig }}
+  sessionAffinityConfig:
+    {{- toYaml .sessionAffinityConfig | nindent 4 }}
+  {{- end }}
+  {{- if .clusterIP }}
+  clusterIP: {{ .clusterIP }}
+  {{- end }}
+  {{- if .ports }}
+  ports:
+  {{- range .ports }}
+  - port: {{ tpl ((required "A valid 'services[].ports.port' entry required!" .port) | toString) $ }}
+    {{- if .name }}
+    name: {{ tpl (.name | toString) $ }}
+    {{- end }} 
+    {{- if .targetPort }}
+    targetPort: {{ tpl (.targetPort | toString) $ }}
+    {{- end }}  
+    {{- if .nodePort }}
+    nodePort: {{ tpl (.nodePort | toString) $ }}
+    {{- end }}  
+  {{- end }}
+{{- end }}
+  selector:
+    {{- include "template.selectorLabels" $ | nindent 4 }}
+    {{- if .selectorLabels }}
+      {{- toYaml .selectorLabels | nindent 4 }}
+    {{- end }}
+---
+{{- end }}
+{{- end }}
+
+
+{{- if .Values.extraServices }}
+{{- range $extraServicesName, $extraServicesValue := .Values.extraServices }}
+{{- if not (eq ($extraServicesValue.enabled | toString) "false") }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ tpl $extraServicesName $ | toString }}
+  labels:
+  {{- include "template.labels" $ | nindent 4 }}
+  {{- if $extraServicesValue.labels }}
+    {{- toYaml $extraServicesValue.labels | nindent 4 }}
+  {{- end }}
+  {{- if $extraServicesValue.annotations }}
+  annotations:
+    {{- toYaml $extraServicesValue.annotations | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if $extraServicesValue.type }}
+  type: {{ $extraServicesValue.type }}
+  {{- end }}
+  {{- if $extraServicesValue.clusterIP }}
+  clusterIP: {{ $extraServicesValue.clusterIP }}
+  {{- end }}
+  ports:
+  {{- if $extraServicesValue.ports }}
+    {{- range $extraServicesValue.ports }}
+    - port: {{ tpl ((required "A valid 'services[].ports.port' entry required!" .port) | toString) $ }}
+      {{- if .name }}
+      name: {{ tpl (.name | toString) $ }}
+      {{- end }} 
+      {{- if .targetPort }}
+      targetPort: {{ tpl (.targetPort | toString) $ }}
+      {{- end }}  
+      {{- if .nodePort }}
+      nodePort: {{ tpl (.nodePort | toString) $ }}
+      {{- end }}  
+    {{- end }}
+  {{- end }}
+
+  {{- if $extraServicesValue.extraPorts }}
+    {{- range $extraPortName, $extraPortValue := $extraServicesValue.extraPorts }}
+    - name: {{ tpl ($extraPortName | toString) $ }}
+      port: {{ tpl ($extraPortValue.port | toString) $ }}
+      {{- if $extraPortValue.targetPort }}
+      targetPort: {{ tpl ($extraPortValue.targetPort | toString) $ }}
+      {{- end }}
+      {{- if $extraPortValue.nodePort }}
+      nodePort: {{ tpl ($extraPortValue.nodePort | toString) $ }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+  selector:
+    {{- include "template.selectorLabels" $ | nindent 4 }}
+    {{- if $extraServicesValue.selectorLabels }}
+      {{- toYaml $extraServicesValue.selectorLabels | nindent 4 }}
+    {{- end }}
+---
+{{- end }}
+{{- end }}
+{{- end }}

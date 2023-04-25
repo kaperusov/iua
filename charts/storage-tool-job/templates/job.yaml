@@ -1,0 +1,186 @@
+{{- if .Values.jobs }}
+{{- range $jobName, $jobValue := $.Values.jobs }}
+
+{{- if (eq (kindOf $jobValue.enabled) "string") }}
+  {{- $enabled := ((tpl $jobValue.enabled $)| toString | lower) }}
+    {{- $_ := set . "enabled" $enabled -}}
+{{- else if (eq (kindOf $jobValue.enabled) "bool") }}
+  {{- $enabled := ($jobValue.enabled | toString | lower) }}
+  {{- $_ := set . "enabled" $enabled -}}
+{{- else }}
+  {{- $_ := set . "enabled" "true" -}}
+{{- end }}
+
+{{- if not (eq .enabled "false") }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ tpl $jobName $ }}
+  labels:
+    {{- include "template.labels" $ | nindent 4 }}
+    {{- if $jobValue.labels }}
+      {{- toYaml $jobValue.labels | nindent 4 }}
+    {{- end }}
+  annotations: 
+    {{- include "template.annotations" $ | nindent 4 }}
+  {{- if $jobValue.annotations }}
+      {{- toYaml $jobValue.annotations | nindent 4 }}
+  {{- end }}
+
+spec:
+  backoffLimit: {{ $jobValue.backoffLimit | default "0" }}
+  {{- if $jobValue.ttlSecondsAfterFinished }}
+  ttlSecondsAfterFinished : {{ $jobValue.ttlSecondsAfterFinished | default "3600" }}
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        {{- include "template.selectorLabels" $ | nindent 8 }}
+      {{- if $jobValue.metadata }}
+      {{- if $jobValue.metadata.annotations }}
+      annotations:
+          {{- toYaml $jobValue.metadata.annotations | nindent 8 }}
+      {{- end }}
+      {{- end }}
+    spec:
+      restartPolicy: {{ $jobValue.restartPolicy | default "Never" }}
+    {{- if $jobValue.nodeSelector }}
+      nodeSelector:
+        {{- tpl (toYaml $jobValue.nodeSelector) $ | nindent 8 }}
+    {{- else if $.Values.nodeSelector }}
+      nodeSelector:
+        {{- tpl (toYaml $.Values.nodeSelector) $ | nindent 8 }}
+    {{- end }}
+      containers:
+        - name: {{ tpl $jobName $ }}
+          {{- if $jobValue.imageOverride }}
+          image: {{ tpl $jobValue.imageOverride $ }}
+          {{- else if $jobValue.image }}
+          image: {{ $jobValue.image.registry | default $.Values.image.registry }}/{{ $jobValue.image.repository | default $.Values.image.repository }}/{{ $jobValue.image.name | default $.Values.image.name | default $.Values.name }}:{{ $jobValue.image.tag | default $.Values.image.tag | default $.Chart.AppVersion }}
+          {{- else if $.Values.image }}
+          image: {{ $.Values.image.registry }}/{{ $.Values.image.repository }}/{{ $.Values.image.name | default $.Values.name }}:{{ $.Values.image.tag | default $.Chart.AppVersion }}
+          {{- end }}
+
+          imagePullPolicy: {{ $jobValue.imagePullPolicy | default  $.Values.imagePullPolicy  | default "Always" }}
+
+          {{- if $jobValue.command }}
+          command: 
+            {{- tpl (toYaml $jobValue.command) $ | nindent 12 }}
+          {{- end }}
+
+          {{- if $jobValue.args }}
+          args:
+            {{- tpl (toYaml $jobValue.args) $ | nindent 12 }}
+          {{- end }}
+          env:
+            {{- if $jobValue.env }}
+              {{- tpl (toYaml $jobValue.env) $ | nindent 12 }}
+            {{- end }}
+          {{- if $jobValue.extraEnvVars }}
+            {{- range $extraEnvVarName, $extraEnvVarValue := $.Values.extraEnvVars }}
+            - name: {{ $extraEnvVarName }}
+              value: {{ tpl $extraEnvVarValue $ | quote }}
+            {{- end }}
+          {{- end }}
+          {{- if $jobValue.envFrom }}
+          envFrom:
+            {{- tpl (toYaml $jobValue.envFrom) $ | nindent 12 }}
+          {{- end }}
+          {{- with $jobValue.resources }}
+          resources:
+            {{- tpl (toYaml .) $ | nindent 12 }}
+          {{- end }}
+          {{- if $jobValue.securityContext }}
+          securityContext:
+            {{- tpl (toYaml $jobValue.securityContext) $ | nindent 12 }}
+          {{- end }}
+          {{- if $jobValue.volumeMounts }}
+          volumeMounts:
+            {{- tpl (toYaml $jobValue.volumeMounts) $ | nindent 12 }}
+          {{- end }}
+
+      {{- if $jobValue.extraContainers }}
+      {{- range $extraContainerName, $extraContainerValue := $jobValue.extraContainers }}
+        - name: {{ tpl $extraContainerName $ | squote }}
+          {{- if $extraContainerValue.imageOverride }}
+          image: '{{ $extraContainerValue.imageOverride }}'
+          {{- else }}
+          image: '{{ $extraContainerValue.image.registry | default $jobValue.image.registry | default $.Values.image.registry }}/{{ $extraContainerValue.image.repository | default $jobValue.image.repository | default $.Values.image.repository }}/{{ $extraContainerValue.image.name | default $jobValue.image.name | default $.Values.image.name }}:{{ $extraContainerValue.image.tag | default $jobValue.image.tag | default $.Values.image.tag | default $.Chart.AppVersion }}'
+          {{- end }}
+
+          imagePullPolicy: '{{ $extraContainerValue.imagePullPolicy | default $.Values.imagePullPolicy  | default "Always" }}'
+
+          {{- if $extraContainerValue.command }}
+          command: 
+            {{- tpl (toYaml $extraContainerValue.command) $ | nindent 12 }}
+          {{- end }}
+
+          {{- if $extraContainerValue.args }}
+          args:
+            {{- tpl (toYaml $extraContainerValue.args) $ | nindent 12 }}
+          {{- end }}
+
+          env:
+          {{- if $extraContainerValue.env }}
+            {{- tpl (toYaml $extraContainerValue.env) $ | nindent 12 }}
+          {{- end }}
+          {{- if $extraContainerValue.extraEnvVars }}
+            {{- range $extraEnvVarsName, $extraEnvVarsValue := $extraContainerValue.extraEnvVars }}
+            - name: {{ $extraEnvVarsName }}
+              value: {{ tpl $extraEnvVarsValue $ | quote }}
+            {{- end }}
+          {{- end }}
+
+          {{- if $extraContainerValue.envFrom }}
+          envFrom:
+            {{- tpl (toYaml $extraContainerValue.envFrom) $ | nindent 12 }}
+          {{- end }}
+
+          {{- with $extraContainerValue.resources }}
+          resources:
+            {{- tpl (toYaml .) $ | nindent 12 }}
+          {{- end }}
+
+          {{- if $extraContainerValue.securityContext }}
+          securityContext:
+            {{- tpl (toYaml $extraContainerValue.securityContext) $ | nindent 12 }}
+          {{- end }}
+
+          {{- if $extraContainerValue.volumeMounts }}
+          volumeMounts:
+            {{- tpl (toYaml $extraContainerValue.volumeMounts) $ | nindent 12 }}
+          {{- end }}
+      
+      {{- end }}
+      {{- end }}
+
+      {{- if $jobValue.hostAliases }}
+      hostAliases:
+        {{- tpl (toYaml $jobValue.hostAliases) $ | nindent 8 }}
+      {{- end }}
+
+      imagePullSecrets:
+      {{- if $jobValue.imagePullSecrets }}
+        {{- tpl (toYaml $jobValue.imagePullSecrets) $ | nindent 8 }}
+      {{- else if $.Values.imagePullSecrets }}
+        {{- tpl (toYaml $.Values.imagePullSecrets) $ | nindent 8 }}
+      {{- end }}
+
+      {{- if $jobValue.serviceAccountName }}
+      serviceAccountName: {{ tpl ($jobValue.serviceAccountName) $ }}
+      {{- end }}
+
+      {{- if $jobValue.podSecurityContext }}
+      securityContext:
+        {{- tpl (toYaml $jobValue.podSecurityContext) $ | nindent 8 }}
+      {{- end }}
+
+      {{- if $jobValue.volumes }}
+      volumes:
+        {{- tpl (toYaml $jobValue.volumes) $ | nindent 8 }}
+      {{- end }}
+
+---
+{{- end }}
+{{- end }}
+{{- end }}

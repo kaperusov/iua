@@ -1,0 +1,23 @@
+{{- if .Values.pv }}
+{{- range .Values.pv }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ tpl .name $ }}
+  labels:
+    {{- include "template.labels" $ | nindent 4 }}
+    {{- if .labels }}
+      {{- toYaml .labels | nindent 4 }}
+    {{- end }}
+  annotations:
+    {{- if .annotations }}
+      {{- toYaml .annotations | nindent 4 }}
+    {{- end }}
+{{- if .spec }}
+spec:
+  {{- tpl (toYaml .spec) $ | nindent 2 }}
+{{- end }}
+
+---
+{{- end }}
+{{- end }}

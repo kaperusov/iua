@@ -1,0 +1,5 @@
+name: "batch-adapter"
+
+volumeMounts:
+  - mountPath: /basket
+    name: smev-nfs-basket

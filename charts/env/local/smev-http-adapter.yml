@@ -1,0 +1,29 @@
+replicaCount: 1
+
+resources:
+  requests:
+    memory: '100Mi'
+    cpu: '100m'
+  limits:
+    memory: '800Mi'
+    cpu: '1'
+
+services:
+  - name: smev-http-adapter
+    type: NodePort
+    ports:
+    - name: smev-http-adapter
+      port: 7576
+      nodePort: 31100
+
+extraEnvVars:
+   JAVA_OPTS: "-Xms1000M -Xmx1500M -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/basket/oom.bin -Dfile.encoding=UTF-8 -Dlocal_storage=/basket"
+   http_client_max_connections: "100"
+   core_maximum_pool_size: "20"
+   conf_maximum_pool_size: "5"
+   main_maximum_pool_size: "2"
+   main_minimum_idle: "1"
+   kafka_consumer_max_poll_interval_ms: "600000"
+   kafka_consumer_session_timeout_ms: "30000"
+   kafka_consumer_max_poll_records: "1"
+
